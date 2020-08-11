@@ -1,62 +1,84 @@
 #!/bin/bash
+set -o nounset
+set -o errexit
 
-echo "Enter the username for DockerHub Account : "
-read UNAME
-echo "Enter the password for DockerHub Account : "
-read UPASS
-echo "Provide value for source organization : "
-read SRC
-echo "Provide value for destination organization : "
-read DEST
-
-# Retrieve a token  
-echo "Retrieving token ..."
-TOKEN=$(curl -s -H "Content-Type: application/json" -X POST -d '{"username": "'${UNAME}'", "password": "'${UPASS}'"}' https://hub.docker.com/v2/users/login/ | jq -r .token)
-
-# Fetch the name  and privacy of the repository in source organization
-
-CHECK=$(curl https://hub.docker.com/v2/repositories/infrac1/?page_size=100 | jq  '.results[]|"\(.name)=\(.is_private)"')
-echo $CHECK
+# Constant values 
+readonly URL=https://hub.docker.com
+readonly VERSION=v2
 
 
-# Get the length of the CHECK variable to iterate number of repositories in source organization
-len=${#CHECK}
-
-
-migrate()
-{
-
-echo "Inside Migrate Function"
-for i  in ${CHECK}
+# Get the commandline arguements for source, destination, repositories to skip, include public/private repos
+for i in "$@"
 do
-   NAME=$(echo $i | sed -e 's/\"//g' -e 's/=.*//')	
-   RES=$(echo $i | sed -e 's/\"//g' -e 's/.*=//g')
-   IMAGE_TAGS=$(curl https://hub.docker.com/v2/repositories/${SRC}/${NAME}/tags/?page_size=100 | jq -r '.results|.[]|.name')
-
- for t in ${IMAGE_TAGS}
- do	   
-   for n in ${t}
-   do	
-      if [ "${RES}" == "false" ]; then
-         docker pull ${SRC}/${NAME}:${n}
-         docker tag ${SRC}/${NAME} ${DEST}/${NAME}
-         docker push ${DEST}/$NAME
-      fi
-   done
+   case $i in
+      -s=*|--src=*)
+       src="${i#*=}"
+       shift
+       ;;
+      -d=*|--dest=*)
+       dest="${i#*=}"
+       ;;
+      -r=*|--skip-repos=*)
+       skip_repos="${i#*=}"
+       ;;
+      -i=*|--include-private=*)
+       visibility="${i#*=}"
+       ;;
+     esac
  done
-done
-}
 
-for itr in len:   
+
+## Fetch the name  and privacy of the repository in the source organization
+check=$(curl -s ${URL}/${VERSION}/repositories/${src}/?page_size=100 | jq  '.results[]|"\(.name)=\(.is_private)"') > /dev/null
+
+## Loop over the number of repositories in source organization 
+for i  in ${check}
 do
-  if [ -z "${TOKEN}" ]
-  then
+	## Fetch the name of the repository
+	name=$(echo ${i} | sed -e 's/\"//g' -e 's/=.*//')
 
-       break
+	## If condition to check whether the repository should be pushed to destination organization
+       if [[ ! "${skip_repos[@]}" =~ "${name}" ]]; then
+         
+	   ## Fetch the repository privacy whether public/private repository    
+	   repo_visibility=$(echo $i | sed -e 's/\"//g' -e 's/.*=//g')
+         
+	   ## Fetch the image tags for the repos
+	   image_tags=$(curl -s ${URL}/${VERSION}/repositories/${src}/${name}/tags/?page_size=100 | jq -r '.results|.[]|.name') > /dev/null 
+   
+   ## Loop to fetch a tag from source org repos and apply to the destination org repos 	   
+   for tag in ${image_tags}
+   do	
+      ## Check whether the repo is public/private repository	    
+      if [ "${repo_visibility}" == "${visibility}" ]; then
 
-  else
+           echo "Pulling ${name} with tag ${tag} from source ${src}"
+ 	   ## Pulling repository from the source organzation    
+           docker pull ${src}/${name}:${tag} > /dev/null
 
-       migrate
-  fi
+           echo "Pulling repository ${name}:${tag} successful" 
+           echo "Tagging the repository from ${src}/${name}:${tag} to ${dest}/${name}:${tag}"
+           ## Tagging a repository with tag to to destination org with tag
+           docker tag ${src}/${name}:${tag} ${dest}/${name}:${tag} > /dev/null
+
+           echo "Repository ${name}:${tag} tagged successfully"
+           echo "Pushing to ${dest} organization the ${name}:${tag} repository"
+           ## Pushing the repository to destination org with specific tag
+           docker push ${dest}/${name}:${tag} > /dev/null
+
+           echo "Push successful for ${name}:${tag}"
+      else
+	   ## If repo is a private repository, skip the execution   
+	   continue
+      fi
 done
+  
+      else
+
+	  ## Skip current repository being added in skip_repos variable
+          continue
+
+      fi
+done
+
 
