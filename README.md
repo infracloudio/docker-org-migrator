@@ -4,7 +4,7 @@ This repository consist of a shell script file that can be used to migrate the p
 
 TODO:
 
-### git clone the url
+### Clone the url
 
 https://github.com/infracloudio/docker-org-migrator.git
 
