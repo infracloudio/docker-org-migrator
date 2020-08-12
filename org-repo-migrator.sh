@@ -10,18 +10,18 @@ readonly VERSION=v2
 # Get the commandline arguements for source, destination, repositories to skip, include public/private repos
 for i in "$@"
 do
+echo $i
    case $i in
       -s=*|--src=*)
        src="${i#*=}"
-       shift
        ;;
       -d=*|--dest=*)
        dest="${i#*=}"
        ;;
-      -r=*|--skip-repos=*)
+      -sr=*|--skip-repos=*)
        skip_repos="${i#*=}"
        ;;
-      -i=*|--include-private=*)
+      -ip=*|--include-private=*)
        visibility="${i#*=}"
        ;;
      esac
@@ -37,7 +37,7 @@ do
 	## Fetch the name of the repository
 	name=$(echo ${i} | sed -e 's/\"//g' -e 's/=.*//')
 
-	## If condition to check whether the repository should be pushed to destination organization
+	## If condition to check whether the repository is to be skipped
        if [[ ! "${skip_repos[@]}" =~ "${name}" ]]; then
          
 	   ## Fetch the repository privacy whether public/private repository    
