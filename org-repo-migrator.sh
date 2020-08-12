@@ -10,7 +10,6 @@ readonly VERSION=v2
 # Get the commandline arguements for source, destination, repositories to skip, include public/private repos
 for i in "$@"
 do
-echo $i
    case $i in
       -s=*|--src=*)
        src="${i#*=}"
