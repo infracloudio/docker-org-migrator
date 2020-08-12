@@ -12,7 +12,11 @@ https://github.com/infracloudio/docker-org-migrator.git
 
 Execution of script:
 
-./org-repo-migrator.sh -s/--src="<source-org>" -d/--dest="<destination-org>" -sr/--skip-repos="<repo names to skip>" -ip/--include-private="<true/false>"
+### With short options
+./org-repo-migrator.sh -s="<source-org>" -d="<destination-org>" -sr="<repo names to skip>" -ip="<true/false>"
+  
+### with long options  
+./org-repo-migrator.sh --src="<source-org>" --dest="<destination-org>" --skip-repos="<repo names to skip>" --include-private="<true/false>"
   
  ### Parameters
   -s/--src = DockerHub source organization from where the repositories are to be migrated <br />
