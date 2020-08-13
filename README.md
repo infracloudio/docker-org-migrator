@@ -19,9 +19,9 @@ Execution of script:
  -ip/--include-private = provide "false", if only public repositories are to be migrated <br />
  
  
-> example:
+***example:***
 
-> ./org-repo-migrator.sh -s/--src="source-org" -d/--dest="remote-org" --skip-repos="repo 1 repo 2 ..repo n" --include-private="false"
-  
-
+***./org-repo-migrator.sh -s/--src="source-org" -d/--dest="remote-org" --skip-repos="repo 1 repo 2 ..repo n" --include-private="false"***
+ 
+**_--skip-repos_ can be skipped to include all the repositories**
 
