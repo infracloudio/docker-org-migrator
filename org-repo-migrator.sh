@@ -57,7 +57,7 @@ checkValue()
 	echo "
 	-s/--source and -d/--destination must be set to alphanumberic value
 	example:
-	-s/--source="example123" "
+	-s/--src=\"example123\" -d/dest=\"example123\" "
 
 	elif [[ ! "${src}" =~ ^[[:alnum:]]+$  ]]; then
 	echo "-s/--source must be alphanumeric"
