@@ -1,7 +1,5 @@
 #!/bin/bash
 
-#set -o xtrace
-
 # Constant values 
 readonly URL=https://hub.docker.com
 readonly VERSION=v2
@@ -9,9 +7,26 @@ readonly VERSION=v2
 #default value for --include-private commandline arguement variable 
 visibility="false"
 
+
+# Provide help to know the usage of script for execution
 help_func()
 {
-  echo "helping"
+  echo "
+  ./org-repo-migrator.sh [OPTIONS] VALUE
+
+  example (using short-args): 
+  ./org-repo-migrator.sh -s=\",source-organization\" -d=\"destination-organization\" -sr=\"repo 1 repo 2 ..repo n\" -ip=\"true/false\"
+
+  example (using long-args):
+  ./org-repo-migrator.sh -src=\",source-organization\" -dest=\"destination-organization\" --skip-repos=\"repo 1 repo 2 ..repo n\" --include-private=\"true/false\"
+
+
+  Options:
+  -s, --src               Name of the source organization from where the repository needs to be pulled for migration
+  -d, --dest              Name of the destination organization where the repository needs to be migrated
+  -sr, --skip-repos       List of repos to include for migration, if none is provided results in inclusion of all the repos
+  -ip, --include-private  Include private repos ( DEFAULT false )
+  "
   exit 0
 }
 
@@ -31,34 +46,29 @@ do
   -ip=*|--include-private=*)
   visibility="${i#*=}"
   ;;
-  
   esac
+  # take an argument and call help_func()
   option="${1}"
   case ${option} in 
   -h|--help)
-  	help_func
+  help_func
   esac
-
 done
 
 # Function to check whether the src and dest variables are null or either src or dest variable is null
 checkEmpty()
 {
+  # Check whether src and dest are empty	
   if [[ "${src}" = "" ]] && [[ "${dest}" = "" ]]; then
   echo "
   -s/--src and -d/--dest cannot be left blank. Please follow below conditions:
-  ./org-repo-migrator.sh [OPTIONS]
-  example: 
-  ./org-repo-migrator.sh -s="source-organization" -d="destination-organization" -sr="repo 1 repo 2 ..repo n" -ip="true/false"
-  Options:
-  -s, --source            Name of the source organization from where the repository needs to be pulled for migration
-  -d, --dest              Name of the destination organization to where the repository needs to be migrated
-  -sr, --skip-repos       List of repos to include for migration, if none is provided results in inclusion of all the repos
-  -ip, --include-private  Whether to include private repos ( DEFAULT false )
+  
+  Use -h/--help to know more
   "
+  # Check if src is empty
   elif [[ "${src}" = ""  ]]; then
   echo "-s/--src cannot be left blank, please provide a valid source organization name."
-  
+  # Check if dest is empty 
   elif [[ "${dest}" = "" ]]; then
   echo "-d/--dest cannot be left blank, please provide a valid destination organization name."
   
@@ -68,15 +78,16 @@ checkEmpty()
 # Function to check value for the variables are alphanumeric
 checkValue()
 {
+  # Check if src and dest are not as per alphanumeric pattern
   if [[ ! "${src}" =~ ^[[:alnum:]]+$ ]] && [[ ! "${dest}" =~ ^[[:alnum:]]+$  ]]; then
   echo "
   -s/--source and -d/--destination must be set to alphanumberic value
   example:
   -s/--src=\"example123\" -d/dest=\"example123\" "
-  
+  # Check whether source follows alphanumeric pattern
   elif [[ ! "${src}" =~ ^[[:alnum:]]+$  ]]; then
   echo "-s/--source must be alphanumeric"
-  
+  # Check whether dest follows alphanumeric pattern 
   elif [[ ! "${dest}" =~ ^[[:alnum:]]+$ ]]; then
   echo "-d/--dest must be alphanumeric"
   
@@ -86,7 +97,7 @@ checkValue()
 # Initializing function when script execution starts
 main()
 {
-
+  # Check if src or dest variable is empty and call checkEmpty() function for further checks
   if [[ "${src}" = ""  ]] || [[ "${dest}" = "" ]]; then
   checkEmpty
   exit 1
@@ -118,7 +129,7 @@ main()
   for tag in ${image_tags}
   do	
   # Check whether the repo is public/private repository	    
-  if [[ "${repo_visibility}" == "${visibility}" ]]; then
+  if [[ "${repo_visibility}" = "${visibility}" ]]; then
   echo "Pulling ${name} with tag ${tag} from source ${src}"
   # Pulling repository from the source organzation    
   docker pull ${src}/${name}:${tag} > /dev/null
