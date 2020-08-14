@@ -34,24 +34,24 @@ help_func()
 for i in "$@"
 do 
   case $i in
-  -s=*|--src=*)
-  src="${i#*=}"
-  ;;
-  -d=*|--dest=*)
-  dest="${i#*=}"
-  ;;
-  -sr=*|--skip-repos=*)
-  skip_repos="${i#*=}"
-  ;;
-  -ip=*|--include-private=*)
-  visibility="${i#*=}"
-  ;;
+    -s=*|--src=*)
+    src="${i#*=}"
+    ;;
+    -d=*|--dest=*)
+    dest="${i#*=}"
+    ;;
+    -sr=*|--skip-repos=*)
+    skip_repos="${i#*=}"
+    ;;
+    -ip=*|--include-private=*)
+    visibility="${i#*=}"
+    ;;
   esac
-  # take an argument and call help_func()
-  option="${1}"
-  case ${option} in 
-  -h|--help)
-  help_func
+    # take an argument and call help_func()
+    option="${1}"
+    case ${option} in 
+    -h|--help)
+    help_func
   esac
 done
 
@@ -60,18 +60,17 @@ checkEmpty()
 {
   # Check whether src and dest are empty	
   if [[ "${src}" = "" ]] && [[ "${dest}" = "" ]]; then
-  echo "
-  -s/--src and -d/--dest cannot be left blank. Please follow below conditions:
-  
-  Use -h/--help to know more
-  "
+    echo "
+    -s/--src and -d/--dest cannot be left blank. Please follow below conditions:
+ 
+    Use -h/--help to know more
+    "
   # Check if src is empty
   elif [[ "${src}" = ""  ]]; then
-  echo "-s/--src cannot be left blank, please provide a valid source organization name."
+    echo "-s/--src cannot be left blank, please provide a valid source organization name."
   # Check if dest is empty 
   elif [[ "${dest}" = "" ]]; then
-  echo "-d/--dest cannot be left blank, please provide a valid destination organization name."
-  
+    echo "-d/--dest cannot be left blank, please provide a valid destination organization name."
   fi
 }
 
@@ -80,16 +79,16 @@ checkValue()
 {
   # Check if src and dest are not as per alphanumeric pattern
   if [[ ! "${src}" =~ ^[[:alnum:]]+$ ]] && [[ ! "${dest}" =~ ^[[:alnum:]]+$  ]]; then
-  echo "
-  -s/--source and -d/--destination must be set to alphanumberic value
-  example:
-  -s/--src=\"example123\" -d/dest=\"example123\" "
+    echo "
+    -s/--source and -d/--destination must be set to alphanumberic value
+    example:
+    -s/--src=\"example123\" -d/dest=\"example123\" "
   # Check whether source follows alphanumeric pattern
   elif [[ ! "${src}" =~ ^[[:alnum:]]+$  ]]; then
-  echo "-s/--source must be alphanumeric"
+    echo "-s/--source must be alphanumeric"
   # Check whether dest follows alphanumeric pattern 
   elif [[ ! "${dest}" =~ ^[[:alnum:]]+$ ]]; then
-  echo "-d/--dest must be alphanumeric"
+    echo "-d/--dest must be alphanumeric"
   
   fi
 }
@@ -99,12 +98,12 @@ main()
 {
   # Check if src or dest variable is empty and call checkEmpty() function for further checks
   if [[ "${src}" = ""  ]] || [[ "${dest}" = "" ]]; then
-  checkEmpty
-  exit 1
+    checkEmpty
+    exit 1
   # Check src or dest variable is alphanumeric and call checkValue() function for further checks
   elif [[ ! "${src}" =~ ^[[:alnum:]]+$ ]] || [[ ! "${dest}" =~ ^[[:alnum:]]+$ ]]; then
-  checkValue
-  exit 1
+    checkValue
+    exit 1
   fi
 	
   # Fetch the name  and privacy of the repository in the source organization
@@ -113,48 +112,48 @@ main()
   # Loop over the number of repositories in source organization 
   for i  in ${check}
   do
-  # Fetch the name of the repository
-  name=$(echo ${i} | sed -e 's/\"//g' -e 's/=.*//')
+    # Fetch the name of the repository
+    name=$(echo ${i} | sed -e 's/\"//g' -e 's/=.*//')
 
-  # If condition to check whether the repository is to be skipped
-  if [[ ! "${skip_repos[@]}" =~ "${name}" ]]; then
+    # If condition to check whether the repository is to be skipped
+    if [[ ! "${skip_repos[@]}" =~ "${name}" ]]; then
          
-  # Fetch the repository privacy whether public/private repository    
-  repo_visibility=$(echo $i | sed -e 's/\"//g' -e 's/.*=//g')
+      # Fetch the repository privacy whether public/private repository    
+      repo_visibility=$(echo $i | sed -e 's/\"//g' -e 's/.*=//g')
          
-  # Fetch the image tags for the repos
-  image_tags=$(curl -s ${URL}/${VERSION}/repositories/${src}/${name}/tags/?page_size=100 | jq -r '.results|.[]|.name') > /dev/null 
+      # Fetch the image tags for the repos
+      image_tags=$(curl -s ${URL}/${VERSION}/repositories/${src}/${name}/tags/?page_size=100 | jq -r '.results|.[]|.name') > /dev/null 
    
-  # Loop to fetch a tag from source org repos and apply to the destination org repos 	   
-  for tag in ${image_tags}
-  do	
-  # Check whether the repo is public/private repository	    
-  if [[ "${repo_visibility}" = "${visibility}" ]]; then
-  echo "Pulling ${name} with tag ${tag} from source ${src}"
-  # Pulling repository from the source organzation    
-  docker pull ${src}/${name}:${tag} > /dev/null
+        # Loop to fetch a tag from source org repos and apply to the destination org repos 	   
+        for tag in ${image_tags}
+        do	
+          # Check whether the repo is public/private repository	    
+          if [[ "${repo_visibility}" = "${visibility}" ]]; then
+            echo "Pulling ${name} with tag ${tag} from source ${src}"
+            # Pulling repository from the source organzation    
+            docker pull ${src}/${name}:${tag} > /dev/null
 
-  echo "Pulling repository ${name}:${tag} successful" 
-  echo "Tagging the repository from ${src}/${name}:${tag} to ${dest}/${name}:${tag}"
-  # Tagging a repository with tag to to destination org with tag
-  docker tag ${src}/${name}:${tag} ${dest}/${name}:${tag} > /dev/null
+            echo "Pulling repository ${name}:${tag} successful" 
+            echo "Tagging the repository from ${src}/${name}:${tag} to ${dest}/${name}:${tag}"
+            # Tagging a repository with tag to to destination org with tag
+            docker tag ${src}/${name}:${tag} ${dest}/${name}:${tag} > /dev/null
 
-  echo "Repository ${name}:${tag} tagged successfully"
-  echo "Pushing to ${dest} organization the ${name}:${tag} repository"
-  # Pushing the repository to destination org with specific tag
-  docker push ${dest}/${name}:${tag} > /dev/null
+            echo "Repository ${name}:${tag} tagged successfully"
+            echo "Pushing to ${dest} organization the ${name}:${tag} repository"
+            # Pushing the repository to destination org with specific tag
+            docker push ${dest}/${name}:${tag} > /dev/null
 
-  echo "Push successful for ${name}:${tag}"
-  else
-  # If repo is a private repository, skip the execution   
-  continue
-  fi
-  done
-  else
-  # Skip current repository being added in skip_repos variable
-  continue
+            echo "Push successful for ${name}:${tag}"
+          else
+            # If repo is a private repository, skip the execution   
+        continue
+          fi
+        done
+    else
+      # Skip current repository being added in skip_repos variable
+      continue
 
-  fi
+    fi
   done
 }
 

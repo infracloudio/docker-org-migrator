@@ -1,7 +1,29 @@
 # docker-org-migrator
 
 ## Usage
-Execution of script:
+
+#### Using Help Command:
+
+**./org-repo-migrator.sh -h/--help**
+
+#### Output:
+
+  ./org-repo-migrator.sh [OPTIONS] VALUE
+
+  example (using short-args):
+  ./org-repo-migrator.sh -s=",source-organization" -d="destination-organization" -sr="repo 1 repo 2 ..repo n" -ip="true/false"
+
+  example (using long-args):
+  ./org-repo-migrator.sh -src=",source-organization" -dest="destination-organization" --skip-repos="repo 1 repo 2 ..repo n" --include-private="true/false"
+
+
+  Options:
+  -s, --src               Name of the source organization from where the repository needs to be pulled for migration
+  -d, --dest              Name of the destination organization where the repository needs to be migrated
+  -sr, --skip-repos       List of repos to include for migration, if none is provided results in inclusion of all the repos
+  -ip, --include-private  Include private repos ( DEFAULT false )
+
+#### Execution of script:
 
 #### *with short options*
 
@@ -23,24 +45,3 @@ Execution of script:
  
 **_--skip-repos_ can be skipped to include all the repositories**
 
-
-## Using Help Command:
-
-**./org-repo-migrator.sh -h/--help**
-
-#### Output:
-
-  ./org-repo-migrator.sh [OPTIONS] VALUE
-
-  example (using short-args): 
-  ./org-repo-migrator.sh -s=",source-organization" -d="destination-organization" -sr="repo 1 repo 2 ..repo n" -ip="true/false"
-
-  example (using long-args):
-  ./org-repo-migrator.sh -src=",source-organization" -dest="destination-organization" --skip-repos="repo 1 repo 2 ..repo n" --include-private="true/false"
-
-
-  Options:
-  -s, --src               Name of the source organization from where the repository needs to be pulled for migration
-  -d, --dest              Name of the destination organization where the repository needs to be migrated
-  -sr, --skip-repos       List of repos to include for migration, if none is provided results in inclusion of all the repos
-  -ip, --include-private  Include private repos ( DEFAULT false )
