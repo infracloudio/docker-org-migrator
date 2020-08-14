@@ -35,23 +35,23 @@ for i in "$@"
 do 
   case $i in
     -s=*|--src=*)
-    src="${i#*=}"
-    ;;
+      src="${i#*=}"
+      ;;
     -d=*|--dest=*)
-    dest="${i#*=}"
-    ;;
+      dest="${i#*=}"
+      ;;
     -sr=*|--skip-repos=*)
-    skip_repos="${i#*=}"
-    ;;
+      skip_repos="${i#*=}"
+      ;;
     -ip=*|--include-private=*)
-    visibility="${i#*=}"
-    ;;
+      visibility="${i#*=}"
+      ;;
   esac
     # take an argument and call help_func()
     option="${1}"
     case ${option} in 
-    -h|--help)
-    help_func
+      -h|--help)
+        help_func
   esac
 done
 
@@ -89,7 +89,6 @@ checkValue()
   # Check whether dest follows alphanumeric pattern 
   elif [[ ! "${dest}" =~ ^[[:alnum:]]+$ ]]; then
     echo "-d/--dest must be alphanumeric"
-  
   fi
 }
 
@@ -146,13 +145,12 @@ main()
             echo "Push successful for ${name}:${tag}"
           else
             # If repo is a private repository, skip the execution   
-        continue
+            continue
           fi
         done
     else
       # Skip current repository being added in skip_repos variable
       continue
-
     fi
   done
 }
