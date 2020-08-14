@@ -37,10 +37,10 @@ $ ./org-repo-migrator.sh --src="<source-org>" --dest="<destination-org>" --skip-
 ```
 ## Parameters
 
--s/--src = DockerHub source organization from where the repositories are to be migrated
--d/--dest = DockerHub destination organization where the repositories are migrated
--sr/--skip-repos = List of repo names given in "", to skip for migration
--ip/--include-private = provide "false", if only public repositories are to be migrated
+-s/--src = DockerHub source organization from where the repositories are to be migrated <br/>
+-d/--dest = DockerHub destination organization where the repositories are migrated <br/>
+-sr/--skip-repos = List of repo names given in "", to skip for migration <br/>
+-ip/--include-private = provide "false", if only public repositories are to be migrated <br/>
 
 ### example:
 ```bash
