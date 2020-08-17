@@ -106,7 +106,7 @@ main()
   fi
 	
   # Fetch the name  and privacy of the repository in the source organization
-  check=$(curl -s ${URL}/${VERSION}/repositories/${src}/?page_size=100 | jq  '.results[]|"\(.name)=\(.is_private)"') > /dev/null
+  check=$(curl -s ${URL}/${VERSION}/repositories/${src}/ | jq  '.results[]|"\(.name)=\(.is_private)"') > /dev/null
 	
   # Loop over the number of repositories in source organization 
   for i  in ${check}
@@ -121,7 +121,7 @@ main()
       repo_visibility=$(echo $i | sed -e 's/\"//g' -e 's/.*=//g')
          
       # Fetch the image tags for the repos
-      image_tags=$(curl -s ${URL}/${VERSION}/repositories/${src}/${name}/tags/?page_size=100 | jq -r '.results|.[]|.name') > /dev/null 
+      image_tags=$(curl -s ${URL}/${VERSION}/repositories/${src}/${name}/tags/ | jq -r '.results|.[]|.name') > /dev/null 
    
         # Loop to fetch a tag from source org repos and apply to the destination org repos 	   
         for tag in ${image_tags}
