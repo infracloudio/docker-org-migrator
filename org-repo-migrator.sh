@@ -1,5 +1,7 @@
 #!/bin/bash
 
+#set -o xtrace
+
 # Constant values 
 readonly URL=https://hub.docker.com
 readonly VERSION=v2
@@ -104,55 +106,66 @@ main()
     checkValue
     exit 1
   fi
-	
-  # Fetch the name  and privacy of the repository in the source organization
-  check=$(curl -s ${URL}/${VERSION}/repositories/${src}/ | jq  '.results[]|"\(.name)=\(.is_private)"') > /dev/null
-	
-  # Loop over the number of repositories in source organization 
-  for i  in ${check}
+  # variable to get the count of pages
+  sum=1
+  # Loop to increment the page counter on the basis of number of repositories 
+  for (( i=1;;i++ ))
   do
-    # Fetch the name of the repository
-    name=$(echo ${i} | sed -e 's/\"//g' -e 's/=.*//')
-
-    # If condition to check whether the repository is to be skipped
-    if [[ ! "${skip_repos[@]}" =~ "${name}" ]]; then
-         
-      # Fetch the repository privacy whether public/private repository    
-      repo_visibility=$(echo $i | sed -e 's/\"//g' -e 's/.*=//g')
-         
-      # Fetch the image tags for the repos
-      image_tags=$(curl -s ${URL}/${VERSION}/repositories/${src}/${name}/tags/ | jq -r '.results|.[]|.name') > /dev/null 
-   
-        # Loop to fetch a tag from source org repos and apply to the destination org repos 	   
-        for tag in ${image_tags}
-        do	
-          # Check whether the repo is public/private repository	    
-          if [[ "${repo_visibility}" = "${visibility}" ]]; then
-            echo "Pulling ${name} with tag ${tag} from source ${src}"
-            # Pulling repository from the source organzation    
-            docker pull ${src}/${name}:${tag} > /dev/null
-
-            echo "Pulling repository ${name}:${tag} successful" 
-            echo "Tagging the repository from ${src}/${name}:${tag} to ${dest}/${name}:${tag}"
-            # Tagging a repository with tag to to destination org with tag
-            docker tag ${src}/${name}:${tag} ${dest}/${name}:${tag} > /dev/null
-
-            echo "Repository ${name}:${tag} tagged successfully"
-            echo "Pushing to ${dest} organization the ${name}:${tag} repository"
-            # Pushing the repository to destination org with specific tag
-            docker push ${dest}/${name}:${tag} > /dev/null
-
-            echo "Push successful for ${name}:${tag}"
-          else
-            # If repo is a private repository, skip the execution   
-            continue
-          fi
-        done
-    else
-      # Skip current repository being added in skip_repos variable
-      continue
+    # Get the repositories in every page	  
+    check="$(curl -s "${URL}/${VERSION}/repositories/${src}/?page=${i}" | jq  '.next')" >/dev/null 2>&1
+    # Verify if the check is null
+    if [[ ! ${check} = "null" ]]; then
+      # Increment sum value to get total pages
+      ((sum=sum+1))
+    else 
+      break
     fi
-  done
+ done
+ # Loop to iterate on the number of repositories in every page
+  for (( res=1;res<=${sum};res++  ));
+  do
+    # Fetch the name  and privacy of the repository in the source organization
+    check=$(curl -s "${URL}/${VERSION}/repositories/${src}/?page=${res}" | jq  '.results[]|"\(.name)=\(.is_private)"') > /dev/null
+  # Loop over the number of repositories in source organization 
+    for i  in ${check}
+    do
+      # Fetch the name of the repository
+      name=$(echo ${i} | sed -e 's/\"//g' -e 's/=.*//')
+      # If condition to check whether the repository is to be skipped
+      if [[ ! "${skip_repos[@]}" =~ "${name}" ]]; then
+         
+        # Fetch the repository privacy whether public/private repository    
+        repo_visibility=$(echo $i | sed -e 's/\"//g' -e 's/.*=//g')
+        # Fetch the image tags for the repos
+        image_tags=$(curl -s ${URL}/${VERSION}/repositories/${src}/${name}/tags/ | jq -r '.results|.[]|.name') > /dev/null 
+	  # Loop to fetch a tag from source org repos and apply to the destination org repos 	   
+          for tag in ${image_tags}
+          do	
+            # Check whether the repo is public/private repository	    
+            if [[ "${repo_visibility}" = "${visibility}" ]]; then
+              echo "Pulling ${name} with tag ${tag} from source ${src}"
+              # Pulling repository from the source organzation    
+              docker pull ${src}/${name}:${tag} > /dev/null
+              echo "Pulling repository ${name}:${tag} successful" 
+              echo "Tagging the repository from ${src}/${name}:${tag} to ${dest}/${name}:${tag}"
+              # Tagging a repository with tag to to destination org with tag
+              docker tag ${src}/${name}:${tag} ${dest}/${name}:${tag} > /dev/null
+              echo "Repository ${name}:${tag} tagged successfully"
+              echo "Pushing to ${dest} organization the ${name}:${tag} repository"
+              # Pushing the repository to destination org with specific tag
+              docker push ${dest}/${name}:${tag} > /dev/null
+              echo "Push successful for ${name}:${tag}"
+            else
+              # If repo is a private repository, skip the execution   
+              continue
+            fi
+          done
+      else
+        # Skip current repository being added in skip_repos variable
+        continue
+      fi
+    done
+done     
 }
 
 # Calling main() function to start execution
