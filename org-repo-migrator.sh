@@ -139,15 +139,15 @@ main()
             if [[ "${repo_visibility}" = "${visibility}" ]]; then
               echo "Pulling ${name} with tag ${tag} from source ${src}"
               # Pulling repository from the source organzation    
-#              docker pull ${src}/${name}:${tag} > /dev/null
+              docker pull ${src}/${name}:${tag} > /dev/null
               echo "Pulling repository ${name}:${tag} successful" 
               echo "Tagging the repository from ${src}/${name}:${tag} to ${dest}/${name}:${tag}"
               # Tagging a repository with tag to to destination org with tag
-#              docker tag ${src}/${name}:${tag} ${dest}/${name}:${tag} > /dev/null
+              docker tag ${src}/${name}:${tag} ${dest}/${name}:${tag} > /dev/null
               echo "Repository ${name}:${tag} tagged successfully"
               echo "Pushing to ${dest} organization the ${name}:${tag} repository"
               # Pushing the repository to destination org with specific tag
-#              docker push ${dest}/${name}:${tag}
+              docker push ${dest}/${name}:${tag}
               echo "Push successful for ${name}:${tag}"
             else
               # If repo is a private repository, skip the execution   
