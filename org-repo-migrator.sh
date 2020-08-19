@@ -92,6 +92,49 @@ checkValue()
     echo "-d/--dest must be alphanumeric"
   fi
 }
+# Function to fetch the list of repositories in a page
+fetchRepos(){
+  # Fetch the repositories in a single page
+  res=$(curl -s "$1/$2/repositories/$3/?page=$4&page_size=$5")
+  # fetch the iteration required for pages
+  nxt=$(echo ${res} | jq '.next')
+  # Fetch name and visibility of the source repository    
+  result=$(echo ${res} | jq '.results[]|"\(.name)=\(.is_private)"')
+}
+
+#Function to fetch the list of tags in a page for a repository
+fetchTags(){
+  # Get the tags in a page              
+  tags=$(curl -s "$1/$2/repositories/$3/$4/tags/?page=$5&page_size=$6")
+  # Get the name of the tags for a repositories
+  image_tags=$(echo ${tags} | jq -r '.results|.[]|.name')
+  # Check whether the response has the next parameter set
+  tag_next=$(echo ${tags} | jq '.next')
+}
+
+# Function to pull repository from src organization
+pullRepos(){
+  echo "Pulling $2 with tag $3 from source $1"
+  # Pulling repository from the source organzation    
+  docker pull $1/$2:$3 > /dev/null
+  echo "Pulling repository $2:$3 successful" 
+}
+
+# Function to tag repository 
+tagRepos(){
+  echo "Tagging the repository from $1/$2:$3 to $4/$2:$3"
+  # Tagging a repository with tag to to destination org with tag
+  docker tag $1/$2:$3 $4/$2:$3 > /dev/null
+  echo "Repository tagging to $4/$2:$3 successful"
+}
+
+# Function to push repository to destination organization
+pushRepos(){
+  echo "Pushing to $1  organization the $2:$3  repository"
+  # Pushing the repository to destination org with specific tag
+  docker push $1/$2:$3 > /dev/null
+  echo "Push successful for $1/$2:$3"
+}
 
 # Initializing function when script execution starts
 main()
@@ -108,12 +151,8 @@ main()
  # Loop to iterate on the number of repositories in every page
   for (( repo_page=1;;repo_page++ ));
   do
-    # Fetch the repositories in a single page 	  
-    res=$(curl -s "${URL}/${VERSION}/repositories/${src}/?page=${repo_page}&page_size=${size_of_page}")
-    # fetch the iteration required for pages
-    nxt=$(echo ${res} | jq '.next')
-    # Fetch name and visibility of the source repository    
-    result=$(echo ${res} | jq '.results[]|"\(.name)=\(.is_private)"')
+    # function to get the repositories in a page 
+    fetchRepos "${URL}" "${VERSION}" "${src}" "${repo_page}" "${size_of_page}"
     # Loop over the number of repositories in source organization 
     for i  in ${result}
     do
@@ -126,30 +165,20 @@ main()
         # Fetch the image tags for the repos
 	for (( tag_page=1;;tag_page++ ));
 	do
-          # Get the tags in a page		
-	  tags=$(curl -s "${URL}/${VERSION}/repositories/${src}/${name}/tags/?page=${tag_page}&page_size=${size_of_page}")
-	  # Get the name of the tags for a repositories
-	  image_tags=$(echo ${tags} | jq -r '.results|.[]|.name')
-	  # Check whether the response has the next parameter set
-          tag_next=$(echo ${tags} | jq '.next')	
-	  # Loop to fetch a tag from source org repos and apply to the destination org repos 	   
+	  # Fetch the tags for the repository
+          fetchTags "${URL}" "${VERSION}" "${src}" "${name}" "${tag_page}" "${size_of_page}"
+          # Loop to fetch a tag from source org repos and apply to the destination org repos
 	  for tag in ${image_tags}
           do
             # Check whether the repo is public/private repository	    
             if [[ "${repo_visibility}" = "${visibility}" ]]; then
-              echo "Pulling ${name} with tag ${tag} from source ${src}"
-              # Pulling repository from the source organzation    
-              docker pull ${src}/${name}:${tag} > /dev/null
-              echo "Pulling repository ${name}:${tag} successful" 
-              echo "Tagging the repository from ${src}/${name}:${tag} to ${dest}/${name}:${tag}"
-              # Tagging a repository with tag to to destination org with tag
-              docker tag ${src}/${name}:${tag} ${dest}/${name}:${tag} > /dev/null
-              echo "Repository ${name}:${tag} tagged successfully"
-              echo "Pushing to ${dest} organization the ${name}:${tag} repository"
-              # Pushing the repository to destination org with specific tag
-              docker push ${dest}/${name}:${tag}
-              echo "Push successful for ${name}:${tag}"
-            else
+              # Function to pull a repository from source organization
+              pullRepos ${src} ${name} ${tag}
+	      # Function to tag repository from source organization to destination organization
+              tagRepos ${src} ${name} ${tag} ${dest}
+	      # Function to push repository to destination organization
+              pushRepos ${dest} ${name} ${tag}	      
+	    else
               # If repo is a private repository, skip the execution   
               continue
 	    fi
@@ -159,7 +188,6 @@ main()
              # If the tag_next is not null continue looping
              continue
 	   else
-		   
 	     break
 	   fi
 	done
@@ -167,16 +195,14 @@ main()
         # Skip current repository being added in skip_repos variable
         continue
       fi
- 
     done
     # Check if the nxt is null or not for repositories
     if [[ ! "${nxt}" = "null" ]]; then
     # if variable nxt is not null continue looping  
      continue
     else
-          break
+      break
     fi
-
 done
 }
 
