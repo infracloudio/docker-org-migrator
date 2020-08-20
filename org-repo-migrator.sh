@@ -94,46 +94,82 @@ checkValue()
 }
 # Function to fetch the list of repositories in a page
 fetchRepos(){
+  # local  variables defined with alias names
+  local url=${1}
+  local ver=${2}
+  local src=${3}
+  local page_count=${4}
+  local page_limit=${5}
+  local nxt_repo=${6}
+  local repo=${7}
+
   # Fetch the repositories in a single page
-  res=$(curl -s "$1/$2/repositories/$3/?page=$4&page_size=$5")
+  res=$(curl -s "${url}/${ver}/repositories/${src}/?page=${page_count}&page_size=${page_limit}")
   # fetch the iteration required for pages
-  nxt=$(echo ${res} | jq '.next')
-  # Fetch name and visibility of the source repository    
-  result=$(echo ${res} | jq '.results[]|"\(.name)=\(.is_private)"')
+  local nxt=$(echo "${res}" | jq '.next')
+  eval $nxt_repo="'$nxt'"
+  # Fetch name and visibility of the source repository
+  local result=$(echo "${res}" | jq '.results[]|"\(.name)=\(.is_private)"')
+  eval $repo="'$result'"
 }
 
 #Function to fetch the list of tags in a page for a repository
 fetchTags(){
+  # local variables defined with alias names
+  local url=${1}
+  local ver=${2}
+  local src=${3}
+  local name=${4}
+  local page_count=${5}
+  local page_limit=${6}
+  local new_tags=${7}
+  local tags_list=${8}
+
   # Get the tags in a page              
-  tags=$(curl -s "$1/$2/repositories/$3/$4/tags/?page=$5&page_size=$6")
-  # Get the name of the tags for a repositories
-  image_tags=$(echo ${tags} | jq -r '.results|.[]|.name')
+  tags=$(curl -s "${url}/${ver}/repositories/${src}/${name}/tags/?page=${page_count}&page_size=${page_limit}")
   # Check whether the response has the next parameter set
-  tag_next=$(echo ${tags} | jq '.next')
+  local tag_next=$(echo "${tags}" | jq '.next')
+  eval $new_tags="'$tag_next'"
+  # Get the name of the tags for a repositories
+  local image_tags=$(echo "${tags}" | jq -r '.results|.[]|.name')
+  eval $tags_list="'$image_tags'"
 }
 
 # Function to pull repository from src organization
 pullRepos(){
-  echo "Pulling $2 with tag $3 from source $1"
+  # local variables defined with alias names
+  local src_org=${1}
+  local src_repo=${2}
+  local repo_tag=${3}
+  echo "Pulling ${src_repo}:${repo_tag} from source ${src_org} organization"
   # Pulling repository from the source organzation    
-  docker pull $1/$2:$3 > /dev/null
-  echo "Pulling repository $2:$3 successful" 
+  docker pull "${src_org}"/"${src_repo}":"${repo_tag}" > /dev/null
+  echo "Pull ${src_repo}:${repo_tag} successful" 
 }
 
 # Function to tag repository 
 tagRepos(){
-  echo "Tagging the repository from $1/$2:$3 to $4/$2:$3"
+  # local variables defined with alias names
+  local src=${1}
+  local repo_name=${2}
+  local tag_ver=${3}
+  local dest=${4}  
+  echo "Tagging the repository from ${src}/${repo_name}:${tag_ver} to ${dest}/${repo_name}:${tag_ver}"
   # Tagging a repository with tag to to destination org with tag
-  docker tag $1/$2:$3 $4/$2:$3 > /dev/null
-  echo "Repository tagging to $4/$2:$3 successful"
+  docker tag "${src}"/"${repo_name}":"${tag_ver}" "${dest}"/"${repo_name}":"${tag_ver}" > /dev/null
+  echo "Tagging to ${dest}/${repo_name}:${tag_ver} successful"
 }
 
 # Function to push repository to destination organization
 pushRepos(){
-  echo "Pushing to $1  organization the $2:$3  repository"
+  # local variables defined with alias names
+  local dest=${1}
+  local repo_name=${2}
+  local tag_ver=${3}
+  echo "Pushing to ${dest}  organization the ${repo_name}:${tag_ver}  repository"
   # Pushing the repository to destination org with specific tag
-  docker push $1/$2:$3 > /dev/null
-  echo "Push successful for $1/$2:$3"
+  docker push "${dest}"/"${repo_name}":"${tag_ver}" > /dev/null
+  echo "Push successful for ${dest}/${repo_name}:${tag_ver}"
 }
 
 # Initializing function when script execution starts
@@ -151,10 +187,10 @@ main()
  # Loop to iterate on the number of repositories in every page
   for (( repo_page=1;;repo_page++ ));
   do
-    # function to get the repositories in a page 
-    fetchRepos "${URL}" "${VERSION}" "${src}" "${repo_page}" "${size_of_page}"
+    # Function to fetch the repositories in every page
+    fetchRepos "${URL}" "${VERSION}" "${src}" "${repo_page}" "${size_of_page}" list_of_repos repo_names
     # Loop over the number of repositories in source organization 
-    for i  in ${result}
+    for i  in $repo_names
     do
       # Fetch the name of the repository
       name=$(echo ${i} | sed -e 's/\"//g' -e 's/=.*//')
@@ -166,9 +202,9 @@ main()
 	for (( tag_page=1;;tag_page++ ));
 	do
 	  # Fetch the tags for the repository
-          fetchTags "${URL}" "${VERSION}" "${src}" "${name}" "${tag_page}" "${size_of_page}"
+	  fetchTags "${URL}" "${VERSION}" "${src}" "${name}" "${tag_page}" "${size_of_page}" list_of_tags tags
           # Loop to fetch a tag from source org repos and apply to the destination org repos
-	  for tag in ${image_tags}
+	  for tag in $tags
           do
             # Check whether the repo is public/private repository	    
             if [[ "${repo_visibility}" = "${visibility}" ]]; then
@@ -184,7 +220,7 @@ main()
 	    fi
           done
 	   # Check if the tag_next is null or not for tags
-	   if [[ ! "${tag_next}" = "null" ]]; then 
+	   if [[ ! $list_of_tags = "null" ]]; then 
              # If the tag_next is not null continue looping
              continue
 	   else
@@ -197,9 +233,9 @@ main()
       fi
     done
     # Check if the nxt is null or not for repositories
-    if [[ ! "${nxt}" = "null" ]]; then
-    # if variable nxt is not null continue looping  
-     continue
+    if [[ ! $list_of_repos = "null" ]]; then
+      # if variable nxt is not null continue looping  
+      continue
     else
       break
     fi
