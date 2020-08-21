@@ -184,7 +184,7 @@ main()
     checkValue
     exit 1
   fi
- # Loop to iterate on the number of repositories in every page
+  # Loop to iterate on the number of repositories in every page
   for (( repo_page=1;;repo_page++ ));
   do
     # Function to fetch the repositories in every page
@@ -199,9 +199,9 @@ main()
         # Fetch the repository privacy whether public/private repository    
         repo_visibility=$(echo $i | sed -e 's/\"//g' -e 's/.*=//g')
         # Fetch the image tags for the repos
-	for (( tag_page=1;;tag_page++ ));
-	do
-	  # Fetch the tags for the repository
+        for (( tag_page=1;;tag_page++ ));
+        do
+          # Fetch the tags for the repository
 	  fetchTags "${URL}" "${VERSION}" "${src}" "${name}" "${tag_page}" "${size_of_page}" list_of_tags tags
           # Loop to fetch a tag from source org repos and apply to the destination org repos
 	  for tag in $tags
@@ -219,16 +219,17 @@ main()
               continue
 	    fi
           done
-	   # Check if the tag_next is null or not for tags
-	   if [[ ! $list_of_tags = "null" ]]; then 
-             # If the tag_next is not null continue looping
-             continue
-	   else
-	     break
-	   fi
+	    # Check if the tag_next is null or not for tags
+	  if [[ ! $list_of_tags = "null" ]]; then 
+            # If the tag_next is not null continue looping
+            continue
+	  else
+            # Stop execution if there are no further tags for the repostiory to fetch		    
+	    break
+	  fi
 	done
       else
-        # Skip current repository being added in skip_repos variable
+        # Skip current repository as added in skip_repos variable
         continue
       fi
     done
@@ -237,9 +238,10 @@ main()
       # if variable nxt is not null continue looping  
       continue
     else
+      # Stop execution if there are no further repositories to fetch
       break
     fi
-done
+  done
 }
 
 # Calling main() function to start execution
