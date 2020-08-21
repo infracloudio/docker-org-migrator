@@ -96,7 +96,6 @@ fetchRepos(){
   local nxt_repo=${6}
   local repo=${7}
 
-#  export TOKEN=$(curl -s -H "Content-Type: application/json" -X POST -d '{"username": "'${DOCKER_USERNAME}'", "password": "'${DOCKER_PASSWORD}'"}' https://hub.docker.com/v2/users/login/ | jq -r .token)
   # Fetch the repositories in a single page
   res=$(curl -s -H "Authorization: JWT ${TOKEN}" "${url}/${ver}/repositories/${src}/?page=${page_count}&page_size=${page_limit}")
   # fetch the iteration required for pages
@@ -119,7 +118,6 @@ fetchTags(){
   local new_tags=${7}
   local tags_list=${8}
 
-#  export TOKEN=$(curl -s -H "Content-Type: application/json" -X POST -d '{"username": "'${DOCKER_USERNAME}'", "password": "'${DOCKER_PASSWORD}'"}' https://hub.docker.com/v2/users/login/ | jq -r .token)
   # Get the tags in a page              
   tags=$(curl -s -H "Authorization: JWT ${TOKEN}" "${url}/${ver}/repositories/${src}/${name}/tags/?page=${page_count}&page_size=${page_limit}")
   # Check whether the response has the next parameter set
