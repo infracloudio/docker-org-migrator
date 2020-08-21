@@ -4,8 +4,6 @@
 readonly URL=https://hub.docker.com
 readonly VERSION=v2
 
-# default value for --include-private commandline arguement variable 
-visibility="false"
 # default valut for curl responsefault valut for curl response
 size_of_page=1000
 
@@ -43,9 +41,6 @@ do
       ;;
     -sr=*|--skip-repos=*)
       skip_repos="${i#*=}"
-      ;;
-    -ip=*|--include-private=*)
-      visibility="${i#*=}"
       ;;
   esac
     # take an argument and call help_func()
@@ -103,8 +98,9 @@ fetchRepos(){
   local nxt_repo=${6}
   local repo=${7}
 
+#  export TOKEN=$(curl -s -H "Content-Type: application/json" -X POST -d '{"username": "'${DOCKER_USERNAME}'", "password": "'${DOCKER_PASSWORD}'"}' https://hub.docker.com/v2/users/login/ | jq -r .token)
   # Fetch the repositories in a single page
-  res=$(curl -s "${url}/${ver}/repositories/${src}/?page=${page_count}&page_size=${page_limit}")
+  res=$(curl -s -H "Authorization: JWT ${TOKEN}" "${url}/${ver}/repositories/${src}/?page=${page_count}&page_size=${page_limit}")
   # fetch the iteration required for pages
   local nxt=$(echo "${res}" | jq '.next')
   eval $nxt_repo="'$nxt'"
@@ -125,8 +121,9 @@ fetchTags(){
   local new_tags=${7}
   local tags_list=${8}
 
+#  export TOKEN=$(curl -s -H "Content-Type: application/json" -X POST -d '{"username": "'${DOCKER_USERNAME}'", "password": "'${DOCKER_PASSWORD}'"}' https://hub.docker.com/v2/users/login/ | jq -r .token)
   # Get the tags in a page              
-  tags=$(curl -s "${url}/${ver}/repositories/${src}/${name}/tags/?page=${page_count}&page_size=${page_limit}")
+  tags=$(curl -s -H "Authorization: JWT ${TOKEN}" "${url}/${ver}/repositories/${src}/${name}/tags/?page=${page_count}&page_size=${page_limit}")
   # Check whether the response has the next parameter set
   local tag_next=$(echo "${tags}" | jq '.next')
   eval $new_tags="'$tag_next'"
@@ -156,7 +153,7 @@ tagRepos(){
   local dest=${4}  
   echo "Tagging the repository from ${src}/${repo_name}:${tag_ver} to ${dest}/${repo_name}:${tag_ver}"
   # Tagging a repository with tag to to destination org with tag
-  docker tag "${src}"/"${repo_name}":"${tag_ver}" "${dest}"/"${repo_name}":"${tag_ver}" > /dev/null
+#  docker tag "${src}"/"${repo_name}":"${tag_ver}" "${dest}"/"${repo_name}":"${tag_ver}" > /dev/null
   echo "Tagging to ${dest}/${repo_name}:${tag_ver} successful"
 }
 
@@ -168,7 +165,7 @@ pushRepos(){
   local tag_ver=${3}
   echo "Pushing to ${dest}  organization the ${repo_name}:${tag_ver}  repository"
   # Pushing the repository to destination org with specific tag
-  docker push "${dest}"/"${repo_name}":"${tag_ver}" > /dev/null
+#  docker push "${dest}"/"${repo_name}":"${tag_ver}" > /dev/null
   echo "Push successful for ${dest}/${repo_name}:${tag_ver}"
 }
 
@@ -196,8 +193,6 @@ main()
       name=$(echo ${i} | sed -e 's/\"//g' -e 's/=.*//')
       # If condition to check whether the repository is to be skipped
       if [[ ! "${skip_repos[@]}" =~ "${name}" ]]; then
-        # Fetch the repository privacy whether public/private repository    
-        repo_visibility=$(echo $i | sed -e 's/\"//g' -e 's/.*=//g')
         # Fetch the image tags for the repos
         for (( tag_page=1;;tag_page++ ));
         do
@@ -206,18 +201,12 @@ main()
           # Loop to fetch a tag from source org repos and apply to the destination org repos
 	  for tag in $tags
           do
-            # Check whether the repo is public/private repository	    
-            if [[ "${repo_visibility}" = "${visibility}" ]]; then
               # Function to pull a repository from source organization
               pullRepos ${src} ${name} ${tag}
 	      # Function to tag repository from source organization to destination organization
               tagRepos ${src} ${name} ${tag} ${dest}
 	      # Function to push repository to destination organization
               pushRepos ${dest} ${name} ${tag}	      
-	    else
-              # If repo is a private repository, skip the execution   
-              continue
-	    fi
           done
 	  # Check if the tag_next is null or not for tags
 	  if [[ ! $list_of_tags = "null" ]]; then 
@@ -243,6 +232,12 @@ main()
     fi
   done
 }
-
-# Calling main() function to start execution
-main
+# Get TOKEN from the DockerHub account
+export TOKEN=$(curl -s -H "Content-Type: application/json" -X POST -d '{"username": "'${DOCKER_USERNAME}'", "password": "'${DOCKER_PASSWORD}'"}' https://hub.docker.com/v2/users/login/ | jq -r .token)
+# Check whether the Token is empty
+if [[ ! -z $TOKEN  ]]; then
+  # Calling main() function to start execution
+  main
+else
+  exit 1
+fi
