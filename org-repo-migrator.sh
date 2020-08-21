@@ -14,17 +14,15 @@ help_func()
   ./org-repo-migrator.sh [OPTIONS] VALUE
 
   example (using short-args): 
-  ./org-repo-migrator.sh -s=\",source-organization\" -d=\"destination-organization\" -sr=\"repo 1 repo 2 ..repo n\" -ip=\"true/false\"
+  ./org-repo-migrator.sh -s=\",source-organization\" -d=\"destination-organization\" -sr=\"repo 1 repo 2 ..repo n\"
 
   example (using long-args):
-  ./org-repo-migrator.sh -src=\",source-organization\" -dest=\"destination-organization\" --skip-repos=\"repo 1 repo 2 ..repo n\" --include-private=\"true/false\"
-
+  ./org-repo-migrator.sh -src=\",source-organization\" -dest=\"destination-organization\" --skip-repos=\"repo 1 repo 2 ..repo n\"
 
   Options:
   -s, --src               Name of the source organization from where the repository needs to be pulled for migration
   -d, --dest              Name of the destination organization where the repository needs to be migrated
   -sr, --skip-repos       List of repos to include for migration, if none is provided results in inclusion of all the repos
-  -ip, --include-private  Include private repos ( DEFAULT false )
   "
   exit 0
 }
@@ -153,7 +151,7 @@ tagRepos(){
   local dest=${4}  
   echo "Tagging the repository from ${src}/${repo_name}:${tag_ver} to ${dest}/${repo_name}:${tag_ver}"
   # Tagging a repository with tag to to destination org with tag
-#  docker tag "${src}"/"${repo_name}":"${tag_ver}" "${dest}"/"${repo_name}":"${tag_ver}" > /dev/null
+  docker tag "${src}"/"${repo_name}":"${tag_ver}" "${dest}"/"${repo_name}":"${tag_ver}" > /dev/null
   echo "Tagging to ${dest}/${repo_name}:${tag_ver} successful"
 }
 
@@ -165,7 +163,7 @@ pushRepos(){
   local tag_ver=${3}
   echo "Pushing to ${dest}  organization the ${repo_name}:${tag_ver}  repository"
   # Pushing the repository to destination org with specific tag
-#  docker push "${dest}"/"${repo_name}":"${tag_ver}" > /dev/null
+  docker push "${dest}"/"${repo_name}":"${tag_ver}" > /dev/null
   echo "Push successful for ${dest}/${repo_name}:${tag_ver}"
 }
 
