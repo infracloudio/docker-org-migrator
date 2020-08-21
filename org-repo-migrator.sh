@@ -219,7 +219,7 @@ main()
               continue
 	    fi
           done
-	    # Check if the tag_next is null or not for tags
+	  # Check if the tag_next is null or not for tags
 	  if [[ ! $list_of_tags = "null" ]]; then 
             # If the tag_next is not null continue looping
             continue
