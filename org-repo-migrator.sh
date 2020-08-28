@@ -98,7 +98,6 @@ fetchRepos(){
 
   # Fetch the repositories in a single page
   res=$(curl -s -H "Authorization: JWT ${TOKEN}" "${url}/${ver}/repositories/${src}/?page=${page_count}&page_size=${page_limit}")
-
   # fetch the iteration required for pages
   local nxt=$(echo "${res}" | jq '.next')
   eval $nxt_repo="'$nxt'"
@@ -120,9 +119,7 @@ fetchTags(){
   local tags_list=${8}
 
   # Get the tags in a page              
-
   tags=$(curl -s -H "Authorization: JWT ${TOKEN}" "${url}/${ver}/repositories/${src}/${name}/tags/?page=${page_count}&page_size=${page_limit}")
-
   # Check whether the response has the next parameter set
   local tag_next=$(echo "${tags}" | jq '.next')
   eval $new_tags="'$tag_next'"
@@ -137,6 +134,7 @@ pullRepos(){
   local src_org=${1}
   local src_repo=${2}
   local repo_tag=${3}
+
   echo "Pulling ${src_repo}:${repo_tag} from source ${src_org} organization"
   # Pulling repository from the source organzation    
   docker pull "${src_org}"/"${src_repo}":"${repo_tag}" > /dev/null
@@ -150,6 +148,7 @@ tagRepos(){
   local repo_name=${2}
   local tag_ver=${3}
   local dest=${4}  
+
   echo "Tagging the repository from ${src}/${repo_name}:${tag_ver} to ${dest}/${repo_name}:${tag_ver}"
   # Tagging a repository with tag to to destination org with tag
   docker tag "${src}"/"${repo_name}":"${tag_ver}" "${dest}"/"${repo_name}":"${tag_ver}" > /dev/null
@@ -162,6 +161,7 @@ pushRepos(){
   local dest=${1}
   local repo_name=${2}
   local tag_ver=${3}
+
   echo "Pushing to ${dest}  organization the ${repo_name}:${tag_ver}  repository"
   # Pushing the repository to destination org with specific tag
   docker push "${dest}"/"${repo_name}":"${tag_ver}" > /dev/null
@@ -192,7 +192,6 @@ main()
       name=$(echo ${i} | sed -e 's/\"//g' -e 's/=.*//')
       # If condition to check whether the repository is to be skipped
       if [[ ! "${skip_repos[@]}" =~ "${name}" ]]; then
-
         # Fetch the image tags for the repos
         for (( tag_page=1;;tag_page++ ));
         do
@@ -201,14 +200,12 @@ main()
           # Loop to fetch a tag from source org repos and apply to the destination org repos
 	  for tag in $tags
           do
-
-              # Function to pull a repository from source organization
-              pullRepos ${src} ${name} ${tag}
-	      # Function to tag repository from source organization to destination organization
-              tagRepos ${src} ${name} ${tag} ${dest}
-	      # Function to push repository to destination organization
-              pushRepos ${dest} ${name} ${tag}	      
-
+            # Function to pull a repository from source organization
+            pullRepos ${src} ${name} ${tag}
+	    # Function to tag repository from source organization to destination organization
+            tagRepos ${src} ${name} ${tag} ${dest}
+	    # Function to push repository to destination organization
+            pushRepos ${dest} ${name} ${tag}	      
           done
 	  # Check if the tag_next is null or not for tags
 	  if [[ ! $list_of_tags = "null" ]]; then 
@@ -235,7 +232,7 @@ main()
   done
 }
 # Get TOKEN from the DockerHub account
-export TOKEN=$(curl -s -H "Content-Type: application/json" -X POST -d '{"username": "'${DOCKER_USERNAME}'", "password": "'${DOCKER_PASSWORD}'"}' https://hub.docker.com/v2/users/login/ | jq -r .token)
+export TOKEN=$(curl -s -H "Content-Type: application/json" -X POST -d '{"username": "'${DOCKER_USERNAME}'", "password": "'${DOCKER_PASSWORD}'"}' ${URL}/${VERSION}/users/login/ | jq -r .token)
 # Check whether the Token is empty
 if [[ ! -z $TOKEN  ]]; then
   # Calling main() function to start execution
