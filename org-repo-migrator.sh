@@ -7,6 +7,9 @@ readonly VERSION=v2
 # default valut for curl responsefault valut for curl response
 size_of_page=1000
 
+# Fetch TOKEN from the DockerHub account
+export TOKEN=$(curl -s -H "Content-Type: application/json" -X POST -d '{"username": "'${DOCKER_USERNAME}'", "password": "'${DOCKER_PASSWORD}'"}' ${URL}/${VERSION}/users/login/ | jq -r .token)
+
 # Provide help to know the usage of script for execution
 help_func()
 {
@@ -23,6 +26,7 @@ help_func()
   -s, --src               Name of the source organization from where the repository needs to be pulled for migration
   -d, --dest              Name of the destination organization where the repository needs to be migrated
   -sr, --skip-repos       List of repos to include for migration, if none is provided results in inclusion of all the repos
+  -ip, --include-private  Include private repos (if true, private and public repos are migrated)
   "
   exit 0
 }
@@ -39,6 +43,9 @@ do
       ;;
     -sr=*|--skip-repos=*)
       skip_repos="${i#*=}"
+      ;;
+    -ip=*|--include-private=*)
+      visibility="${i#*=}"
       ;;
   esac
     # take an argument and call help_func()
@@ -65,6 +72,10 @@ checkEmpty()
   # Check if dest is empty 
   elif [[ "${dest}" = "" ]]; then
     echo "-d/--dest cannot be left blank, please provide a valid destination organization name."
+  fi
+  # Check if include private repos is empty 
+  if [[ "${visibility}" = ""  ]]; then
+    echo "-ip/--include-private cannot be left blank, please provide either true/false."
   fi
 }
 
@@ -137,7 +148,7 @@ pullRepos(){
 
   echo "Pulling ${src_repo}:${repo_tag} from source ${src_org} organization"
   # Pulling repository from the source organzation    
-  docker pull "${src_org}"/"${src_repo}":"${repo_tag}" > /dev/null
+  #docker pull "${src_org}"/"${src_repo}":"${repo_tag}" > /dev/null
   echo "Pull ${src_repo}:${repo_tag} successful" 
 }
 
@@ -151,7 +162,7 @@ tagRepos(){
 
   echo "Tagging the repository from ${src}/${repo_name}:${tag_ver} to ${dest}/${repo_name}:${tag_ver}"
   # Tagging a repository with tag to to destination org with tag
-  docker tag "${src}"/"${repo_name}":"${tag_ver}" "${dest}"/"${repo_name}":"${tag_ver}" > /dev/null
+  #docker tag "${src}"/"${repo_name}":"${tag_ver}" "${dest}"/"${repo_name}":"${tag_ver}" > /dev/null
   echo "Tagging to ${dest}/${repo_name}:${tag_ver} successful"
 }
 
@@ -164,7 +175,7 @@ pushRepos(){
 
   echo "Pushing to ${dest}  organization the ${repo_name}:${tag_ver}  repository"
   # Pushing the repository to destination org with specific tag
-  docker push "${dest}"/"${repo_name}":"${tag_ver}" > /dev/null
+  #docker push "${dest}"/"${repo_name}":"${tag_ver}" > /dev/null
   echo "Push successful for ${dest}/${repo_name}:${tag_ver}"
 }
 
@@ -172,7 +183,7 @@ pushRepos(){
 main()
 {
   # Check if src or dest variable is empty and call checkEmpty() function for further checks
-  if [[ "${src}" = ""  ]] || [[ "${dest}" = "" ]]; then
+  if [[ "${src}" = ""  ]] || [[ "${dest}" = "" ]] || [[ "${visibility}" = "" ]]; then
     checkEmpty
     exit 1
   # Check src or dest variable is alphanumeric and call checkValue() function for further checks
@@ -192,6 +203,8 @@ main()
       name=$(echo ${i} | sed -e 's/\"//g' -e 's/=.*//')
       # If condition to check whether the repository is to be skipped
       if [[ ! "${skip_repos[@]}" =~ "${name}" ]]; then
+        # Fetch the repository privacy whether public/private repository    
+        repo_visibility=$(echo $i | sed -e 's/\"//g' -e 's/.*=//g')
         # Fetch the image tags for the repos
         for (( tag_page=1;;tag_page++ ));
         do
@@ -200,12 +213,26 @@ main()
           # Loop to fetch a tag from source org repos and apply to the destination org repos
 	  for tag in $tags
           do
-            # Function to pull a repository from source organization
-            pullRepos ${src} ${name} ${tag}
-	    # Function to tag repository from source organization to destination organization
-            tagRepos ${src} ${name} ${tag} ${dest}
-	    # Function to push repository to destination organization
-            pushRepos ${dest} ${name} ${tag}	      
+            if [[ "${visibility}" = "false"  ]]; then
+              # Check whether the repo is public/private repository	    
+              if [[ "${repo_visibility}" = "${visibility}" ]]; then	    
+                # Function to pull a repository from source organization
+                pullRepos ${src} ${name} ${tag}
+	        # Function to tag repository from source organization to destination organization
+                tagRepos ${src} ${name} ${tag} ${dest}
+	        # Function to push repository to destination organization
+                pushRepos ${dest} ${name} ${tag}
+              fi
+	    else
+              if [[ "${repo_visibility}" = "true" || "${repo_visibility}" = "false" ]]; then
+                # Function to pull a repository from source organization
+	        pullRepos ${src} ${name} ${tag}
+	        # Function to tag repository from source organization to destination organization
+	        tagRepos ${src} ${name} ${tag} ${dest}
+	        # Function to push repository to destination organization
+	        pushRepos ${dest} ${name} ${tag}
+	      fi  
+	    fi   
           done
 	  # Check if the tag_next is null or not for tags
 	  if [[ ! $list_of_tags = "null" ]]; then 
@@ -231,12 +258,6 @@ main()
     fi
   done
 }
-# Get TOKEN from the DockerHub account
-export TOKEN=$(curl -s -H "Content-Type: application/json" -X POST -d '{"username": "'${DOCKER_USERNAME}'", "password": "'${DOCKER_PASSWORD}'"}' ${URL}/${VERSION}/users/login/ | jq -r .token)
-# Check whether the Token is empty
-if [[ ! -z $TOKEN  ]]; then
-  # Calling main() function to start execution
-  main
-else
-  exit 1
-fi
+
+# Start execution
+main
