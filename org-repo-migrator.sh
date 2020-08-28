@@ -98,6 +98,7 @@ fetchRepos(){
 
   # Fetch the repositories in a single page
   res=$(curl -s -H "Authorization: JWT ${TOKEN}" "${url}/${ver}/repositories/${src}/?page=${page_count}&page_size=${page_limit}")
+
   # fetch the iteration required for pages
   local nxt=$(echo "${res}" | jq '.next')
   eval $nxt_repo="'$nxt'"
@@ -119,7 +120,9 @@ fetchTags(){
   local tags_list=${8}
 
   # Get the tags in a page              
+
   tags=$(curl -s -H "Authorization: JWT ${TOKEN}" "${url}/${ver}/repositories/${src}/${name}/tags/?page=${page_count}&page_size=${page_limit}")
+
   # Check whether the response has the next parameter set
   local tag_next=$(echo "${tags}" | jq '.next')
   eval $new_tags="'$tag_next'"
@@ -189,6 +192,7 @@ main()
       name=$(echo ${i} | sed -e 's/\"//g' -e 's/=.*//')
       # If condition to check whether the repository is to be skipped
       if [[ ! "${skip_repos[@]}" =~ "${name}" ]]; then
+
         # Fetch the image tags for the repos
         for (( tag_page=1;;tag_page++ ));
         do
@@ -197,12 +201,14 @@ main()
           # Loop to fetch a tag from source org repos and apply to the destination org repos
 	  for tag in $tags
           do
+
               # Function to pull a repository from source organization
               pullRepos ${src} ${name} ${tag}
 	      # Function to tag repository from source organization to destination organization
               tagRepos ${src} ${name} ${tag} ${dest}
 	      # Function to push repository to destination organization
               pushRepos ${dest} ${name} ${tag}	      
+
           done
 	  # Check if the tag_next is null or not for tags
 	  if [[ ! $list_of_tags = "null" ]]; then 
