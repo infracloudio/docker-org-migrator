@@ -31,8 +31,13 @@ $ ./org-repo-migrator.sh -h
   export DOCKER_USERNAME="<dockerhub-username>"
 ```
 ```bash
-  export DOCKER_PASSWORD="<dockerhub-password>"
+  export DOCKER_AUTH="<dockerhub-password>"
 ```
+  or
+```bash
+  export DOCKER_AUTH="<dockerhub-access-token>"
+```
+####  Instead of Password, Personal Access Token can also be used for DOCKER_AUTH variable
 #### with short options
 
 ./org-repo-migrator.sh -s="" -d="" -sr="" -ip="<true/false>"

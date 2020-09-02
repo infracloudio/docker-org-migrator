@@ -8,7 +8,7 @@ readonly VERSION=v2
 size_of_page=1000
 
 # Fetch TOKEN from the DockerHub account
-export TOKEN=$(curl -s -H "Content-Type: application/json" -X POST -d '{"username": "'${DOCKER_USERNAME}'", "password": "'${DOCKER_PASSWORD}'"}' ${URL}/${VERSION}/users/login/ | jq -r .token)
+TOKEN=$(curl -s -H "Content-Type: application/json" -X POST -d '{"username": "'${DOCKER_USERNAME}'", "password": "'${DOCKER_AUTH}'"}' ${URL}/${VERSION}/users/login/ | jq -r .token)
 
 # Provide help to know the usage of script for execution
 help_func()
@@ -148,7 +148,7 @@ pullRepos(){
 
   echo "Pulling ${src_repo}:${repo_tag} from source ${src_org} organization"
   # Pulling repository from the source organzation    
-  #docker pull "${src_org}"/"${src_repo}":"${repo_tag}" > /dev/null
+  docker pull "${src_org}"/"${src_repo}":"${repo_tag}" > /dev/null
   echo "Pull ${src_repo}:${repo_tag} successful" 
 }
 
@@ -162,7 +162,7 @@ tagRepos(){
 
   echo "Tagging the repository from ${src}/${repo_name}:${tag_ver} to ${dest}/${repo_name}:${tag_ver}"
   # Tagging a repository with tag to to destination org with tag
-  #docker tag "${src}"/"${repo_name}":"${tag_ver}" "${dest}"/"${repo_name}":"${tag_ver}" > /dev/null
+  docker tag "${src}"/"${repo_name}":"${tag_ver}" "${dest}"/"${repo_name}":"${tag_ver}" > /dev/null
   echo "Tagging to ${dest}/${repo_name}:${tag_ver} successful"
 }
 
@@ -175,7 +175,7 @@ pushRepos(){
 
   echo "Pushing to ${dest}  organization the ${repo_name}:${tag_ver}  repository"
   # Pushing the repository to destination org with specific tag
-  #docker push "${dest}"/"${repo_name}":"${tag_ver}" > /dev/null
+  docker push "${dest}"/"${repo_name}":"${tag_ver}" > /dev/null
   echo "Push successful for ${dest}/${repo_name}:${tag_ver}"
 }
 
