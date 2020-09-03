@@ -57,6 +57,15 @@ $ ./org-repo-migrator.sh --src="<source-org>" --dest="<destination-org>" --skip-
 -sr/--skip-repos = List of repo names given in "", to skip for migration <br/>
 -ip/--include-private = provide "false", if only public repositories are to be migrated <br/>
 
+**Note**: -ip/--include-private is an Optional Parameter, if not included defaults to "false", if included and left "" will result in "false"
+
+``` bash
+$ ./org-repo-migrator.sh -s/--src="<source-org"  -d/--dest="<destination-org>" -sr/--skip-repos="<repo names to skip>"  
+```
+``` bash
+$ ./org-repo-migrator.sh -s/--src="<source-org"  -d/--dest="<destination-org>" -sr/--skip-repos="<repo names to skip>" -ip/--include-private=""
+```
+
 ### example:
 ```bash
 $ ./org-repo-migrator.sh -s/--src="source-org" -d/--dest="remote-org" --skip-repos="repo 1 repo 2 ..repo n" --include-private="false"

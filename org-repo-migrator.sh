@@ -4,7 +4,9 @@
 readonly URL=https://hub.docker.com
 readonly VERSION=v2
 
-# default valut for curl responsefault valut for curl response
+# Default value for -ip/--include-private if arguement is skipped
+visibility="false"
+# default value for curl response
 size_of_page=1000
 
 # Fetch TOKEN from the DockerHub account
@@ -46,6 +48,10 @@ do
       ;;
     -ip=*|--include-private=*)
       visibility="${i#*=}"
+      # Check value if empty, defaults to false
+      if [[ ${visibility} = "" ]]; then
+        visibility="false"
+      fi
       ;;
   esac
     # take an argument and call help_func()
@@ -72,10 +78,6 @@ checkEmpty()
   # Check if dest is empty 
   elif [[ "${dest}" = "" ]]; then
     echo "-d/--dest cannot be left blank, please provide a valid destination organization name."
-  fi
-  # Check if include private repos is empty 
-  if [[ "${visibility}" = ""  ]]; then
-    echo "-ip/--include-private cannot be left blank, please provide either true/false."
   fi
 }
 
@@ -183,7 +185,7 @@ pushRepos(){
 main()
 {
   # Check if src or dest variable is empty and call checkEmpty() function for further checks
-  if [[ "${src}" = ""  ]] || [[ "${dest}" = "" ]] || [[ "${visibility}" = "" ]]; then
+  if [[ "${src}" = ""  ]] || [[ "${dest}" = "" ]]; then
     checkEmpty
     exit 1
   # Check src or dest variable is alphanumeric and call checkValue() function for further checks
