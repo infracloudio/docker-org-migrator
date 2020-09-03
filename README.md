@@ -55,7 +55,7 @@ $ ./org-repo-migrator.sh --src="<source-org>" --dest="<destination-org>" --skip-
 -s/--src = DockerHub source organization from where the repositories are to be migrated <br/>
 -d/--dest = DockerHub destination organization where the repositories are migrated <br/>
 -sr/--skip-repos = List of repo names given in "", to skip for migration <br/>
--ip/--include-private = provide "false", if only public repositories are to be migrated <br/>
+-ip/--include-private = (optional) if set true, private repos will also be migrated along with public repos <br/>
 
 **Note**: -ip/--include-private is an Optional Parameter, if not included defaults to "false", if included and left "" will result in "false"
 
