@@ -4,10 +4,13 @@
 readonly URL=https://hub.docker.com
 readonly VERSION=v2
 
-# default value for --include-private commandline arguement variable 
+# Default value for -ip/--include-private if arguement is skipped
 visibility="false"
-# default valut for curl responsefault valut for curl response
+# default value for curl response
 size_of_page=1000
+
+# Fetch TOKEN from the DockerHub account
+TOKEN=$(curl -s -H "Content-Type: application/json" -X POST -d '{"username": "'${DOCKER_USERNAME}'", "password": "'${DOCKER_AUTH}'"}' ${URL}/${VERSION}/users/login/ | jq -r .token)
 
 # Provide help to know the usage of script for execution
 help_func()
@@ -16,17 +19,16 @@ help_func()
   ./org-repo-migrator.sh [OPTIONS] VALUE
 
   example (using short-args): 
-  ./org-repo-migrator.sh -s=\",source-organization\" -d=\"destination-organization\" -sr=\"repo 1 repo 2 ..repo n\" -ip=\"true/false\"
+  ./org-repo-migrator.sh -s=\",source-organization\" -d=\"destination-organization\" -sr=\"repo 1 repo 2 ..repo n\"
 
   example (using long-args):
-  ./org-repo-migrator.sh -src=\",source-organization\" -dest=\"destination-organization\" --skip-repos=\"repo 1 repo 2 ..repo n\" --include-private=\"true/false\"
-
+  ./org-repo-migrator.sh -src=\",source-organization\" -dest=\"destination-organization\" --skip-repos=\"repo 1 repo 2 ..repo n\"
 
   Options:
   -s, --src               Name of the source organization from where the repository needs to be pulled for migration
   -d, --dest              Name of the destination organization where the repository needs to be migrated
   -sr, --skip-repos       List of repos to include for migration, if none is provided results in inclusion of all the repos
-  -ip, --include-private  Include private repos ( DEFAULT false )
+  -ip, --include-private  Include private repos (if true, private and public repos are migrated)
   "
   exit 0
 }
@@ -46,6 +48,10 @@ do
       ;;
     -ip=*|--include-private=*)
       visibility="${i#*=}"
+      # Check value if empty, defaults to false
+      if [[ ${visibility} = "" ]]; then
+        visibility="false"
+      fi
       ;;
   esac
     # take an argument and call help_func()
@@ -104,7 +110,7 @@ fetchRepos(){
   local repo=${7}
 
   # Fetch the repositories in a single page
-  res=$(curl -s "${url}/${ver}/repositories/${src}/?page=${page_count}&page_size=${page_limit}")
+  res=$(curl -s -H "Authorization: JWT ${TOKEN}" "${url}/${ver}/repositories/${src}/?page=${page_count}&page_size=${page_limit}")
   # fetch the iteration required for pages
   local nxt=$(echo "${res}" | jq '.next')
   eval $nxt_repo="'$nxt'"
@@ -126,7 +132,7 @@ fetchTags(){
   local tags_list=${8}
 
   # Get the tags in a page              
-  tags=$(curl -s "${url}/${ver}/repositories/${src}/${name}/tags/?page=${page_count}&page_size=${page_limit}")
+  tags=$(curl -s -H "Authorization: JWT ${TOKEN}" "${url}/${ver}/repositories/${src}/${name}/tags/?page=${page_count}&page_size=${page_limit}")
   # Check whether the response has the next parameter set
   local tag_next=$(echo "${tags}" | jq '.next')
   eval $new_tags="'$tag_next'"
@@ -141,6 +147,7 @@ pullRepos(){
   local src_org=${1}
   local src_repo=${2}
   local repo_tag=${3}
+
   echo "Pulling ${src_repo}:${repo_tag} from source ${src_org} organization"
   # Pulling repository from the source organzation    
   docker pull "${src_org}"/"${src_repo}":"${repo_tag}" > /dev/null
@@ -154,6 +161,7 @@ tagRepos(){
   local repo_name=${2}
   local tag_ver=${3}
   local dest=${4}  
+
   echo "Tagging the repository from ${src}/${repo_name}:${tag_ver} to ${dest}/${repo_name}:${tag_ver}"
   # Tagging a repository with tag to to destination org with tag
   docker tag "${src}"/"${repo_name}":"${tag_ver}" "${dest}"/"${repo_name}":"${tag_ver}" > /dev/null
@@ -166,6 +174,7 @@ pushRepos(){
   local dest=${1}
   local repo_name=${2}
   local tag_ver=${3}
+
   echo "Pushing to ${dest}  organization the ${repo_name}:${tag_ver}  repository"
   # Pushing the repository to destination org with specific tag
   docker push "${dest}"/"${repo_name}":"${tag_ver}" > /dev/null
@@ -206,18 +215,26 @@ main()
           # Loop to fetch a tag from source org repos and apply to the destination org repos
 	  for tag in $tags
           do
-            # Check whether the repo is public/private repository	    
-            if [[ "${repo_visibility}" = "${visibility}" ]]; then
-              # Function to pull a repository from source organization
-              pullRepos ${src} ${name} ${tag}
-	      # Function to tag repository from source organization to destination organization
-              tagRepos ${src} ${name} ${tag} ${dest}
-	      # Function to push repository to destination organization
-              pushRepos ${dest} ${name} ${tag}	      
+            if [[ "${visibility}" = "false"  ]]; then
+              # Check whether the repo is public/private repository	    
+              if [[ "${repo_visibility}" = "${visibility}" ]]; then	    
+                # Function to pull a repository from source organization
+                pullRepos ${src} ${name} ${tag}
+	        # Function to tag repository from source organization to destination organization
+                tagRepos ${src} ${name} ${tag} ${dest}
+	        # Function to push repository to destination organization
+                pushRepos ${dest} ${name} ${tag}
+              fi
 	    else
-              # If repo is a private repository, skip the execution   
-              continue
-	    fi
+              if [[ "${repo_visibility}" = "true" || "${repo_visibility}" = "false" ]]; then
+                # Function to pull a repository from source organization
+	        pullRepos ${src} ${name} ${tag}
+	        # Function to tag repository from source organization to destination organization
+	        tagRepos ${src} ${name} ${tag} ${dest}
+	        # Function to push repository to destination organization
+	        pushRepos ${dest} ${name} ${tag}
+	      fi  
+	    fi   
           done
 	  # Check if the tag_next is null or not for tags
 	  if [[ ! $list_of_tags = "null" ]]; then 
@@ -244,5 +261,5 @@ main()
   done
 }
 
-# Calling main() function to start execution
+# Start execution
 main
